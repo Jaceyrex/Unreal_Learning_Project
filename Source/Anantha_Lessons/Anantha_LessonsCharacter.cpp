@@ -46,9 +46,9 @@ AAnantha_LessonsCharacter::AAnantha_LessonsCharacter()
 	//RightAnchor = this->GetMesh()->GetSocketByName("Right Shot Anchor");
 
 	LeftAnchor = CreateDefaultSubobject<UArrowComponent>(TEXT("Left_Anchor"));
-	LeftAnchor->SetupAttachment(GetFollowCamera());
+	LeftAnchor->SetupAttachment(RootComponent);
 	RightAnchor = CreateDefaultSubobject<UArrowComponent>(TEXT("Right_Anchor"));
-	RightAnchor->SetupAttachment(GetFollowCamera());
+	RightAnchor->SetupAttachment(RootComponent);
 
 	SkeletalMesh = FindComponentByClass<USkeletalMeshComponent>();
 
@@ -88,8 +88,8 @@ void AAnantha_LessonsCharacter::SetupPlayerInputComponent(class UInputComponent*
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AAnantha_LessonsCharacter::StartSprint_Implementation);
-	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AAnantha_LessonsCharacter::EndSprint_Implementation);
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AAnantha_LessonsCharacter::StartSprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AAnantha_LessonsCharacter::EndSprint);
 
 	PlayerInputComponent->BindAction("RangedAttack", IE_Pressed, this, &AAnantha_LessonsCharacter::StartShooting);
 	PlayerInputComponent->BindAction("RangedAttack", IE_Repeat, this, &AAnantha_LessonsCharacter::ChargeShot);
@@ -178,21 +178,49 @@ void AAnantha_LessonsCharacter::MoveRight(float Value)
 	}
 }
 
-UFUNCTION(NetMulticast, Reliable)
-void AAnantha_LessonsCharacter::StartSprint_Implementation()
+void AAnantha_LessonsCharacter::StartSprint()
+{
+	StartSprint_Server();
+}
+
+void AAnantha_LessonsCharacter::StartSprint_Multicast_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Start sprint"));
 	GetCharacterMovement()->MaxWalkSpeed *= sprintModifier;
 }
 
-UFUNCTION(NetMulticast, Reliable)
-void AAnantha_LessonsCharacter::EndSprint_Implementation()
+void AAnantha_LessonsCharacter::EndSprint_Multicast_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("End sprint"));
 	GetCharacterMovement()->MaxWalkSpeed /= sprintModifier;
 }
 
-void AAnantha_LessonsCharacter::StartShooting()
+void AAnantha_LessonsCharacter::EndSprint()
+{
+	EndSprint_Server();
+}
+
+bool AAnantha_LessonsCharacter::StartSprint_Server_Validate()
+{
+	return true;
+}
+
+bool AAnantha_LessonsCharacter::EndSprint_Server_Validate()
+{
+	return true;
+}
+
+void AAnantha_LessonsCharacter::StartSprint_Server_Implementation()
+{
+	StartSprint_Multicast();
+}
+
+void AAnantha_LessonsCharacter::EndSprint_Server_Implementation()
+{
+	EndSprint_Multicast();
+}
+
+void AAnantha_LessonsCharacter::StartShooting_Server_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("shoot button down"));
 
@@ -226,68 +254,47 @@ void AAnantha_LessonsCharacter::StartShooting()
 		UE_LOG(LogTemp, Warning, TEXT("right anchor IS NULL"));
 	}
 
-
-
 	FActorSpawnParameters SpawnInfo;
-	//switch (side)
-	//{
-	//	case Side::Left: 
-	//		UE_LOG(LogTemp, Warning, TEXT("About to fire from left"));
-
-	//		/*this->Children[0]->Children[2]->Children[0]->Children[0]
-	//		
-	//		this->Children
-	//		this->GetComponents()*/
-	//		//GetWorld()->SpawnActor<AActor>()
-	//		GetWorld()->SpawnActor<AActor>(ToSpawn, LeftLocation, LeftRotation, SpawnInfo);
-	//		//Get the current shot
-	//		UE_LOG(LogTemp, Warning, TEXT("Fired from left"));
-
-	//		side = Side::Right;
-	//		UE_LOG(LogTemp, Warning, TEXT("side variable set to RIGHT"));
-	//		break;
-	//	case Side::Right: 
-	//		UE_LOG(LogTemp, Warning, TEXT("About to fire from right"));
-
-	//		GetWorld()->SpawnActor<AActor>(ToSpawn, RightLocation, RightRotation, SpawnInfo);
-	//		//GetWorld()->SpawnActor<AActor>(ToSpawn, FTransform(LeftLocation, LeftRotation, FVector(0.f)), SpawnInfo);
-	//		//Get the current shot
-	//		UE_LOG(LogTemp, Warning, TEXT("Fired from right"));
-
-	//		side = Side::Left;
-	//		UE_LOG(LogTemp, Warning, TEXT("side variable set to RIGHT"));
-	//		break;
-	//}
 
 	switch (intSide)
 	{
-	case 1:
-		UE_LOG(LogTemp, Warning, TEXT("About to fire from left"));
+		case 1:
+			UE_LOG(LogTemp, Warning, TEXT("About to fire from left"));
 
-		/*this->Children[0]->Children[2]->Children[0]->Children[0]
+			/*this->Children[0]->Children[2]->Children[0]->Children[0]
 
-		this->Children
-		this->GetComponents()*/
-		//GetWorld()->SpawnActor<AActor>()
-		GetWorld()->SpawnActor<AActor>(ToSpawn, LeftLocation, LeftRotation, SpawnInfo);
-		//Get the current shot
-		UE_LOG(LogTemp, Warning, TEXT("Fired from left"));
+			this->Children
+			this->GetComponents()*/
+			//GetWorld()->SpawnActor<AActor>()
+			GetWorld()->SpawnActor<AActor>(ToSpawn, LeftLocation, LeftRotation, SpawnInfo);
+			//Get the current shot
+			UE_LOG(LogTemp, Warning, TEXT("Fired from left"));
 
-		intSide = 2;
-		UE_LOG(LogTemp, Warning, TEXT("side variable set to RIGHT"));
-		break;
-	case 2:
-		UE_LOG(LogTemp, Warning, TEXT("About to fire from right"));
+			intSide = 2;
+			UE_LOG(LogTemp, Warning, TEXT("side variable set to RIGHT"));
+			break;
+		case 2:
+			UE_LOG(LogTemp, Warning, TEXT("About to fire from right"));
 
-		GetWorld()->SpawnActor<AActor>(ToSpawn, RightLocation, RightRotation, SpawnInfo);
-		//GetWorld()->SpawnActor<AActor>(ToSpawn, FTransform(LeftLocation, LeftRotation, FVector(0.f)), SpawnInfo);
-		//Get the current shot
-		UE_LOG(LogTemp, Warning, TEXT("Fired from right"));
+			GetWorld()->SpawnActor<AActor>(ToSpawn, RightLocation, RightRotation, SpawnInfo);
+			//GetWorld()->SpawnActor<AActor>(ToSpawn, FTransform(LeftLocation, LeftRotation, FVector(0.f)), SpawnInfo);
+			//Get the current shot
+			UE_LOG(LogTemp, Warning, TEXT("Fired from right"));
 
-		intSide = 1;
-		UE_LOG(LogTemp, Warning, TEXT("side variable set to RIGHT"));
-		break;
+			intSide = 1;
+			UE_LOG(LogTemp, Warning, TEXT("side variable set to RIGHT"));
+			break;
 	}
+}
+
+bool AAnantha_LessonsCharacter::StartShooting_Server_Validate()
+{
+	return true;
+}
+
+void AAnantha_LessonsCharacter::StartShooting()
+{
+	StartShooting_Server();
 }
 
 void AAnantha_LessonsCharacter::ChargeShot()

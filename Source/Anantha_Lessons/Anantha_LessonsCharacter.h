@@ -123,13 +123,36 @@ public:
 
 	//UFUNCTION(BlueprintCallable, Category = Movement)
 
-	UFUNCTION(Server, Reliable)
-	void StartSprint();
+	UFUNCTION(NetMulticast, Reliable)
+	void StartSprint_Multicast();
+	void StartSprint_Multicast_Implementation();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void EndSprint_Multicast();
+	void EndSprint_Multicast_Implementation();
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void StartSprint_Server();
+	void StartSprint_Server_Implementation();
+	bool StartSprint_Server_Validate();
 
-	UFUNCTION(Server, Reliable)
+	void StartSprint();
 	void EndSprint();
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void EndSprint_Server();
+	void EndSprint_Server_Implementation();
+	bool EndSprint_Server_Validate();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void StartShooting_Server();
+	
+	void StartShooting_Server_Implementation();
+
+	bool StartShooting_Server_Validate();
+
 	void StartShooting();
+
 	void ChargeShot();
 	void EndShooting();
 
